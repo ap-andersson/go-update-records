@@ -200,13 +200,14 @@ func getRelevantIpAddress(configuration Configurations) (ip net.IP, err error) {
 			return nil, errors.New("Error while fetching interfaces: " + err.Error())
 		}
 		for _, currInterface := range interfaces {
+			fmt.Println("    Current interface: " + currInterface.Name)
 			addresses, err := currInterface.Addrs()
 			if err != nil {
 				fmt.Print(fmt.Errorf("Error while fetching addresses for interface: " + err.Error()))
 				continue
 			}
 			for _, ipAddress := range addresses {
-
+				fmt.Println("    Current address: " + ipAddress.String())
 				switch ip := ipAddress.(type) {
 				case *net.IPNet:
 
