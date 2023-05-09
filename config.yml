@@ -1,0 +1,8 @@
+GLESYS_WEBSERVICE_URL: "https://api.glesys.com"
+GLESYS_USERNAME: "" #clXXXX
+GLESYS_APIKEY: ""
+GLESYS_USE_PUBLIC_IP: true
+GLESYS_IP_STARTS_WITH: "" # ex 10.10.1.
+GLESYS_TTL: 300
+GLESYS_INTERVAL: 60
+GLESYS_DOMAINS: "<domain1>#<host1>,<host2>|<domain2>#<host1>,<host2>"
