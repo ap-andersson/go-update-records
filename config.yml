@@ -1,4 +1,3 @@
-GLESYS_WEBSERVICE_URL: "https://api.glesys.com"
 GLESYS_USERNAME: "" #clXXXX
 GLESYS_APIKEY: ""
 GLESYS_USE_PUBLIC_IP: true

@@ -20,7 +20,6 @@ type DomainRecord struct {
 }
 
 type Configurations struct {
-	GLESYS_WEBSERVICE_URL string
 	GLESYS_USERNAME       string
 	GLESYS_APIKEY         string
 	GLESYS_USE_PUBLIC_IP  bool
