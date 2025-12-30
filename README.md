@@ -16,8 +16,8 @@ You only need listrecords and updaterecord permission on the account used to acc
 | Variable | Required | Default value | Description
 | --- | ----------- | --- | ---
 | GLESYS_USE_PUBLIC_IP | Yes |  | Whether to use public IP or IP found by using GLESYS_IP_STARTS_WITH variable
-| GLESYS_TTL | No | 300 | TTL to set on the records
-| GLESYS_INTERVAL | No | Existing value | Interval to run in minutes
+| GLESYS_TTL | No | Existing value on record | TTL to set on the records
+| GLESYS_INTERVAL | No | 300 | Interval to run in seconds
 | GLESYS_IP_STARTS_WITH | No | | String used to find IP on any adapter to use for the updates. Used together with USE_PUBLIC_IP = false
 | GLESYS_USERNAME | Yes | | Username (starts with 'cl') for the API
 | GLESYS_APIKEY | Yes | | API key for the account
@@ -41,7 +41,7 @@ services:
       - GLESYS_USE_PUBLIC_IP=true
       #- GLESYS_IP_STARTS_WITH=192.168.0.
       - GLESYS_DOMAINS=example1.com#@,www,*|example1.com#@,www,*
-      #- GLESYS_VERBOSE=false
+      #- GLESYS_VERBOSE=true
     #network_mode: "host"
     restart: unless-stopped
 ```
