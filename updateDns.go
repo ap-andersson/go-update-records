@@ -191,7 +191,7 @@ func log(verboseOnly bool, format string, a ...interface{}) {
 		if !strings.HasSuffix(format, "\n") {
 			format += "\n"
 		}
-		fmt.Printf(time.Now().Format(time.DateTime)+" "+format, a...)
+		fmt.Printf("["+time.Now().Format(time.DateTime)+"] "+format, a...)
 	}
 }
 
