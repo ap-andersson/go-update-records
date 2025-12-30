@@ -5,3 +5,4 @@ GLESYS_IP_STARTS_WITH: "" # ex 10.10.1.
 GLESYS_TTL: 300
 GLESYS_INTERVAL: 60
 GLESYS_DOMAINS: "<domain1>#<host1>,<host2>|<domain2>#<host1>,<host2>"
+GLESYS_VERBOSE: false

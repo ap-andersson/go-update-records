@@ -22,6 +22,7 @@ You only need listrecords and updaterecord permission on the account used to acc
 | GLESYS_USERNAME | Yes | | Username (starts with 'cl') for the API
 | GLESYS_APIKEY | Yes | | API key for the account
 | GLESYS_DOMAINS | Yes | | Domains and hosts that should be updated. Format is '\<domain1>#\<host1>,\<host2>\|\<domain2>#\<host1>,\<host2>'
+| GLESYS_VERBOSE | No | false | Enable verbose logging
 
 
 ## Docker container
@@ -40,6 +41,7 @@ services:
       - GLESYS_USE_PUBLIC_IP=true
       #- GLESYS_IP_STARTS_WITH=192.168.0.
       - GLESYS_DOMAINS=example1.com#@,www,*|example1.com#@,www,*
+      #- GLESYS_VERBOSE=false
     #network_mode: "host"
     restart: unless-stopped
 ```

@@ -27,11 +27,14 @@ type Configurations struct {
 	GLESYS_TTL            int
 	GLESYS_INTERVAL       int
 	GLESYS_DOMAINS        string
+	GLESYS_VERBOSE        bool
 }
+
+var verboseLogging bool
 
 func main() {
 
-	fmt.Println("Starting go-update-records... Woohoo!")
+	log(false, "Starting go-update-records... Woohoo!")
 
 	viper.AddConfigPath(".")
 	viper.SetConfigName("config")
@@ -39,7 +42,7 @@ func main() {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Printf("Error reading config file, %s \n", err)
+		log(false, "Error reading config file, %s", err)
 		return
 	}
 
@@ -47,9 +50,11 @@ func main() {
 
 	err := viper.Unmarshal(&configuration)
 	if err != nil {
-		fmt.Printf("Unable to decode config into struct, %v \n", err)
+		log(false, "Unable to decode config into struct, %v", err)
 		return
 	}
+
+	verboseLogging = configuration.GLESYS_VERBOSE
 
 	domains := configuration.GLESYS_DOMAINS
 
@@ -68,18 +73,19 @@ func main() {
 	}
 
 	for {
-		fmt.Println("Starting run @ " + time.Now().Format(time.DateTime))
+		log(true, "Starting run @ %s", time.Now().Format(time.DateTime))
 
+		skippedRecords := make([]string, 0)
 		myContext, myCancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer myCancel()
 		client := glesys.NewClient(configuration.GLESYS_USERNAME, configuration.GLESYS_APIKEY, "go-update-records")
 
 		ipAddress, error := getRelevantIpAddress(configuration)
 		if error != nil {
-			fmt.Println("Failed to get relevant IP, skipping run. Reason: ", error.Error())
+			log(false, "Failed to get relevant IP, skipping run. Reason: %s", error.Error())
 			return
 		}
-		fmt.Println("Using IP: " + ipAddress.String())
+		log(true, "Using IP: %s", ipAddress.String())
 
 		var recordsMap = make(map[string][]string)
 		for _, record := range recordsList {
@@ -93,14 +99,14 @@ func main() {
 
 			currentRecords, error := client.DNSDomains.ListRecords(myContext, domain)
 			if error != nil {
-				fmt.Println("Failed to fetch current records for domain " + domain + ". Skipping. Error: " + error.Error())
+				log(false, "Failed to fetch current records for domain %s. Skipping. Error: %s", domain, error.Error())
 				continue
 			}
 
-			fmt.Println("Printing all A records for domain " + domain)
+			log(true, "Printing all A records for domain %s", domain)
 			for _, r := range *currentRecords {
 				if strings.EqualFold(r.Type, "a") {
-					fmt.Printf("    %d-%s.%s:%s (%d)\n",
+					log(true, "    %d-%s.%s:%s (%d)",
 						r.RecordID,
 						r.Host,
 						r.DomainName,
@@ -118,11 +124,11 @@ func main() {
 					}
 				}
 				if selectedRecord == nil {
-					fmt.Printf("Unable to find host %s, skipping \n", host)
+					log(false, "Unable to find host %s, skipping", host)
 					continue
 				}
-				fmt.Println("Selected record to update:")
-				fmt.Printf("    %d-%s.%s:%s (%d)\n",
+
+				log(true, "Selected record to update: %d-%s.%s:%s (%d)",
 					selectedRecord.RecordID,
 					selectedRecord.Host,
 					selectedRecord.DomainName,
@@ -130,11 +136,18 @@ func main() {
 					selectedRecord.TTL)
 
 				if strings.EqualFold(selectedRecord.Data, ipAddress.String()) {
-					fmt.Println("Existing values are correct, no update needed.")
+					log(true, "Existing values are correct, no update needed.")
+					skippedRecords = append(skippedRecords, fmt.Sprintf("%s.%s", host, domain))
 					continue
 				}
 
-				fmt.Println("Updating selected record with new values...")
+				log(false, "Updating selected record: %d-%s.%s:%s (%d)",
+					selectedRecord.RecordID,
+					selectedRecord.Host,
+					selectedRecord.DomainName,
+					selectedRecord.Data,
+					selectedRecord.TTL)
+
 				updateRecordParams := glesys.UpdateRecordParams{}
 				updateRecordParams.RecordID = selectedRecord.RecordID
 				updateRecordParams.Host = selectedRecord.Host
@@ -148,42 +161,53 @@ func main() {
 				updatedRecord, error := client.DNSDomains.UpdateRecord(myContext, updateRecordParams)
 
 				if error != nil {
-					fmt.Println("Failed to update record: " + error.Error())
+					log(false, "Failed to update record: %s", error.Error())
 					continue
 				}
 
-				fmt.Println("Returned record:")
-				fmt.Printf("    %d-%s.%s:%s (%d)\n",
+				log(false, "Returned record: %d-%s.%s:%s (%d)",
 					updatedRecord.RecordID,
 					updatedRecord.Host,
 					updatedRecord.DomainName,
 					updatedRecord.Data,
 					updatedRecord.TTL)
-
 			}
 
 		}
 
-		fmt.Println("Finishing run @ " + time.Now().Format(time.DateTime))
+		if len(skippedRecords) > 0 {
+			log(false, "Did not need to update: %s", strings.Join(skippedRecords, ", "))
+		}
+
+		log(true, "Finishing run @ %s", time.Now().Format(time.DateTime))
 
 		time.Sleep(time.Duration(configuration.GLESYS_INTERVAL) * time.Second)
 	}
 
 }
 
+func log(verboseOnly bool, format string, a ...interface{}) {
+	if !verboseOnly || verboseLogging {
+		if !strings.HasSuffix(format, "\n") {
+			format += "\n"
+		}
+		fmt.Printf(time.Now().Format(time.DateTime)+" "+format, a...)
+	}
+}
+
 func getRelevantIpAddress(configuration Configurations) (ip net.IP, err error) {
 	var returnValue net.IP
 	if configuration.GLESYS_USE_PUBLIC_IP {
-		fmt.Println("Finding public IP...")
+		log(true, "Finding public IP...")
 		resp, error := http.Get("https://api.ipify.org")
 		if error != nil {
-			fmt.Println("Error while retrieving the public IP")
+			log(false, "Error while retrieving the public IP")
 			return nil, errors.New("error while fetching the public IP")
 		}
 		defer resp.Body.Close()
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println("Error while retrieving the public IP")
+			log(false, "Error while retrieving the public IP")
 			return nil, errors.New("error while reading response when fetching public IP")
 		}
 		ipAsString := string(body)
@@ -195,18 +219,18 @@ func getRelevantIpAddress(configuration Configurations) (ip net.IP, err error) {
 	} else {
 		interfaces, err := net.Interfaces()
 		if err != nil {
-			fmt.Print(fmt.Errorf("Error while fetching interfaces: " + err.Error()))
+			log(false, "Error while fetching interfaces: %s", err.Error())
 			return nil, errors.New("Error while fetching interfaces: " + err.Error())
 		}
 		for _, currInterface := range interfaces {
-			fmt.Println("  Current interface: " + currInterface.Name)
+			log(true, "  Current interface: %s", currInterface.Name)
 			addresses, err := currInterface.Addrs()
 			if err != nil {
-				fmt.Print(fmt.Errorf("Error while fetching addresses for interface: " + err.Error()))
+				log(false, "Error while fetching addresses for interface: %s", err.Error())
 				continue
 			}
 			for _, ipAddress := range addresses {
-				fmt.Println("    Current address: " + ipAddress.String())
+				log(true, "    Current address: %s", ipAddress.String())
 				switch ip := ipAddress.(type) {
 				case *net.IPNet:
 
